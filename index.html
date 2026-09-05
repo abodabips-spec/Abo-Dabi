@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة السيارات والأقساط - تسجيل الدخول</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+        @media print {
+            body { background: white !important; padding: 0 !important; }
+            .no-print { display: none !important; }
+            .print-container { width: 100% !important; margin: 0 !important; padding: 10px !important; box-shadow: none !important; }
+        }
+        @keyframes pulseAlert {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .alert-pulse {
+            animation: pulseAlert 1.5s infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 md:p-8">
+
+    <!-- شاشة تسجيل الدخول -->
+    <div id="loginScreen" class="max-w-md mx-auto mt-16 bg-white p-8 rounded-2xl shadow-xl space-y-6">
+        <div class="text-center">
+            <h1 class="text-2xl font-bold text-gray-800">تسجيل الدخول للنظام</h1>
+            <p class="text-gray-500 text-sm mt-1">نظام إدارة السيارات والأقساط (برمجة وهبي رياض)</p>
+        </div>
+        <form onsubmit="handleLogin(event)" class="space-y-4">
+            <div>
+                <label class="block text-gray-700 font-semibold mb-1 text-sm">اسم المستخدم:</label>
+                <input type="text" id="loginUsername" required placeholder="أدخل اسم المستخدم" class="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+            </div>
+            <div>
+                <label class="block text-gray-700 font-semibold mb-1 text-sm">الرمز السري:</label>
+                <input type="password" id="loginPassword" required placeholder="أدخل الرمز السري" class="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+            </div>
+            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition shadow-md text-sm">
+                دخول للنظام
+            </button>
+        </form>
+    </div>
+
+    <!-- السستم الرئيسي -->
+    <div id="mainSystem" class="max-w-6xl mx-auto space-y-6 hidden">
+        
+        <!-- عنوان البرنامج وأزرار التحكم العليا -->
+        <div class="bg-white shadow-md rounded-2xl p-6 text-center no-print flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 id="welcomeTitle" class="text-2xl md:text-3xl font-bold text-gray-800">نظام إدارة السيارات، المصروفات، والأقساط</h1>
+                <p class="text-gray-500 mt-1 text-sm">إدارة السجلات والعمليات (بالدولار $)  </p>
+            </div>
+            <div id="topActionButtons" class="flex items-center gap-2 flex-wrap justify-center"></div>
+        </div>
+
+        <!-- شريط التنبيهات البصرية للأقساط المتأخرة -->
+        <div id="quickOverdueAlertBanner" class="hidden no-print"></div>
+
+        <!-- لوحة الإحصائيات والتقارير المالية العامة -->
+        <div id="dashboardStats" class="grid grid-cols-1 md:grid-cols-3 gap-4 no-print">
+            <div class="bg-white p-4 rounded-2xl shadow-md border-r-4 border-blue-600 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-gray-500 font-semibold">إجمالي رأس المال الفعلي ($)</p>
+                    <h3 id="statTotalCapital" class="text-xl font-bold text-blue-700 mt-1">0</h3>
+                </div>
+                <div class="bg-blue-100 p-3 rounded-xl text-blue-600 text-xl">🚗</div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-md border-r-4 border-emerald-600 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-gray-500 font-semibold">صافي أرباح السيارات المباعة ($)</p>
+                    <h3 id="statTotalProfit" class="text-xl font-bold text-emerald-700 mt-1">0</h3>
+                </div>
+                <div class="bg-emerald-100 p-3 rounded-xl text-emerald-600 text-xl">📈</div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-md border-r-4 border-amber-600 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-gray-500 font-semibold">إجمالي المبالغ المتبقية بذمة المشترين ($)</p>
+                    <h3 id="statTotalRemaining" class="text-xl font-bold text-amber-700 mt-1">0</h3>
+                </div>
+                <div class="bg-amber-100 p-3 rounded-xl text-amber-600 text-xl">💰</div>
+            </div>
+        </div>
+
+        <!-- شريط الفلاتر السريعة والبحث الفوري -->
+        <div class="bg-white shadow-md rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 no-print">
+            <div class="flex items-center gap-2 flex-wrap w-full md:w-auto">
+                <span class="text-xs font-bold text-gray-700">تصفية العرض:</span>
+                <button type="button" onclick="setFilter('all')" id="filterBtn_all" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white transition">الكل</button>
+                <button type="button" onclick="setFilter('available')" id="filterBtn_available" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-200 text-gray-700 hover:bg-gray-300 transition">🚗 المتوفرة (المعروضة)</button>
+                <button type="button" onclick="setFilter('sold')" id="filterBtn_sold" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-200 text-gray-700 hover:bg-gray-300 transition">💰 المباعة</button>
+            </div>
+            <div class="w-full md:w-1/2">
+                <input type="text" id="searchInput" oninput="renderContracts()" placeholder="بحث سريع عن مركبة، مشتري، رقم، أو هاتف..." class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+            </div>
+        </div>
+
+        <!-- نموذج إضافة مركبة جديدة -->
+        <div class="bg-white shadow-md rounded-2xl p-6 no-print">
+            <h2 class="text-xl font-bold text-blue-600 mb-4 border-b pb-2">إضافة سيارة جديدة للمخزن</h2>
+            <form id="carForm" class="grid grid-cols-1 md:grid-cols-3 gap-4" onsubmit="handleFormSubmit(event)">
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-1">نوع السيارة:*</label>
+                    <input type="text" id="carType" required placeholder="مثال: كيا أوبتيما" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-1">رقم المركبة:*</label>
+                    <input type="text" id="carNumber" required placeholder="مثال: بغداد 54321" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                </div>
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block text-gray-700 font-semibold text-sm">سعر الشراء الأساسي ($):*</label>
+                        <button type="button" onclick="openIQDConverter('purchasePrice')" class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold hover:bg-amber-200">💱 تحويل من عراقي</button>
+                    </div>
+                    <input type="number" step="any" id="purchasePrice" required placeholder="0" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-1">تاريخ الشراء:*</label>
+                    <input type="date" id="purchaseDate" required class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                </div>
+                <div class="md:col-span-3 flex items-center mt-2">
+                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition duration-300 text-sm">
+                        حفظ السيارة في النظام
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- قائمة العقود والمركبات -->
+        <div class="bg-white shadow-md rounded-2xl p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2 no-print">سجلات السيارات (المعروضة والمباعة)</h2>
+            <div id="contractsContainer" class="space-y-3"></div>
+        </div>
+
+    </div>
+
+    <!-- نافذة تحويل العملة -->
+    <div id="iqdModal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4 no-print" onclick="closeIQDConverter()">
+        <div class="bg-white p-6 rounded-2xl max-w-sm w-full relative space-y-4 shadow-2xl border-t-4 border-amber-600" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-base font-bold text-amber-700">💱 تحويل المبلغ من الدينار العراقي ($)</h3>
+                <button onclick="closeIQDConverter()" class="bg-gray-200 text-gray-700 w-7 h-7 rounded-full font-bold hover:bg-gray-300">×</button>
+            </div>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-1">المبلغ بالمصروف أو السعر بالدينار (IQD):</label>
+                    <input type="number" id="iqdAmountInput" placeholder="مثال: 150000" class="w-full px-3 py-2 border rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-1">سعر صرف 1 دولار:</label>
+                    <input type="number" id="iqdRateInput" value="1500" placeholder="1500" class="w-full px-3 py-2 border rounded-lg text-sm">
+                </div>
+                <div class="bg-amber-50 p-2.5 rounded-lg text-center">
+                    <span class="text-gray-600">المبلغ الناتج بالدولار:</span>
+                    <h4 id="iqdResultPreview" class="text-base font-bold text-amber-800 mt-1">0 $</h4>
+                </div>
+                <div class="flex gap-2 pt-1">
+                    <button type="button" onclick="applyIQDConversion()" class="flex-1 bg-amber-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-amber-700 transition">إتمام واعتماد المبلغ</button>
+                    <button type="button" onclick="closeIQDConverter()" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-xs font-bold">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة إدخال الرمز السري للحذف -->
+    <div id="deletePasswordModal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4 no-print" onclick="closeDeletePasswordModal()">
+        <div class="bg-white p-6 rounded-2xl max-w-sm w-full relative space-y-4 shadow-2xl border-t-4 border-red-600" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-base font-bold text-red-600">⚠️ تأكيد الحماية بالرمز السري</h3>
+                <button onclick="closeDeletePasswordModal()" class="bg-gray-200 text-gray-700 w-7 h-7 rounded-full font-bold hover:bg-gray-300">×</button>
+            </div>
+            <p class="text-xs text-gray-600" id="deleteReasonText">يرجى إدخال الرمز السري الخاص بك لإتمام عملية الحذف:</p>
+            <form onsubmit="confirmDeleteAction(event)" class="space-y-3">
+                <input type="password" id="confirmDeletePassInput" required placeholder="أدخل الرمز السري" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
+                <div class="flex gap-2 pt-1">
+                    <button type="submit" class="flex-1 bg-red-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-red-700 transition">تأكيد الحذف</button>
+                    <button type="button" onclick="closeDeletePasswordModal()" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-xs font-bold">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- نافذة إضافة مستخدم جديد -->
+    <div id="registerModal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4 no-print" onclick="closeRegisterModal()">
+        <div class="bg-white p-6 rounded-2xl max-w-md w-full relative space-y-4" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-lg font-bold text-emerald-700">إضافة مستخدم جديد</h3>
+                <button onclick="closeRegisterModal()" class="bg-gray-200 text-gray-700 w-8 h-8 rounded-full font-bold hover:bg-gray-300">×</button>
+            </div>
+            <form onsubmit="handleRegisterNewUser(event)" class="space-y-4 text-xs">
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-1">اسم المستخدم الجديد:*</label>
+                    <input type="text" id="newRegUsername" required placeholder="مثال: أحمد" class="w-full px-3 py-2 border rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-1">الرمز السري الخاص به:*</label>
+                    <input type="password" id="newRegPassword" required placeholder="الرمز السري" class="w-full px-3 py-2 border rounded-lg text-sm">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-emerald-700 transition">إنشاء الحساب والسستم</button>
+                    <button type="button" onclick="closeRegisterModal()" class="bg-gray-300 text-gray-700 px-4 py-2.5 rounded-lg text-sm font-bold">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- نافذة تغيير الرمز السري -->
+    <div id="changePasswordModal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4 no-print" onclick="closeChangePasswordModal()">
+        <div class="bg-white p-6 rounded-2xl max-w-md w-full relative space-y-4" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-lg font-bold text-purple-700">تغيير الرمز السري للحساب الحالي</h3>
+                <button onclick="closeChangePasswordModal()" class="bg-gray-200 text-gray-700 w-8 h-8 rounded-full font-bold hover:bg-gray-300">×</button>
+            </div>
+            <form onsubmit="handleChangePassword(event)" class="space-y-4 text-xs">
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-1">الرمز السري الجديد:*</label>
+                    <input type="password" id="newPasswordInput" required placeholder="أدخل الرمز السري الجديد" class="w-full px-3 py-2 border rounded-lg text-sm">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 bg-purple-600 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-purple-700 transition">حفظ الرمز الجديد</button>
+                    <button type="button" onclick="closeChangePasswordModal()" class="bg-gray-300 text-gray-700 px-4 py-2.5 rounded-lg text-sm font-bold">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- نافذة البيع -->
+    <div id="saleModal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4 no-print" onclick="closeSaleModal()">
+        <div class="bg-white p-6 rounded-2xl max-w-xl w-full max-h-[90vh] overflow-auto relative space-y-4" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-lg font-bold text-emerald-700">تسجيل بيع المركبة</h3>
+                <button onclick="closeSaleModal()" class="bg-gray-200 text-gray-700 w-8 h-8 rounded-full font-bold">×</button>
+            </div>
+            <form id="saleForm" onsubmit="handleSaleSubmit(event)" class="space-y-4 text-xs">
+                <input type="hidden" id="saleCarId">
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-1">طريقة البيع:*</label>
+                    <select id="modalSaleType" onchange="toggleModalInstallmentInputs()" class="w-full px-3 py-2 border rounded-lg bg-white text-sm" required>
+                        <option value="cash">بيع نقداً</option>
+                        <option value="installment">بيع بالأقساط</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-1">اسم المشتري:*</label>
+                    <input type="text" id="modalBuyerName" required placeholder="اسم المشتري الثلاثي" class="w-full px-3 py-2 border rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-1">رقم هاتف المشتري:</label>
+                    <input type="text" id="modalBuyerPhone" placeholder="رقم الهاتف" class="w-full px-3 py-2 border rounded-lg text-sm">
+                </div>
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block text-gray-700 font-semibold text-sm">سعر البيع الإجمالي ($):*</label>
+                        <button type="button" onclick="openIQDConverter('modalSellingPrice')" class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold hover:bg-amber-200">💱 تحويل من عراقي</button>
+                    </div>
+                    <input type="number" step="any" id="modalSellingPrice" required placeholder="0" class="w-full px-3 py-2 border rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-1">تاريخ البيع:*</label>
+                    <input type="date" id="modalSellingDate" required class="w-full px-3 py-2 border rounded-lg text-sm">
+                </div>
+                <div id="modalInstallmentContainer" class="space-y-3 bg-blue-50 p-3 rounded-xl border border-blue-200 hidden">
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-gray-700 font-semibold text-sm">الدفعة المقدمة (الواصل) ($):</label>
+                            <button type="button" onclick="openIQDConverter('modalDownPayment')" class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold hover:bg-amber-200">💱 تحويل</button>
+                        </div>
+                        <input type="number" step="any" id="modalDownPayment" placeholder="0" class="w-full px-3 py-2 border rounded-lg bg-white text-sm">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-gray-700 font-semibold text-sm">مبلغ القسط الشهري ($):</label>
+                            <button type="button" onclick="openIQDConverter('modalMonthlyInstallment')" class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold hover:bg-amber-200">💱 تحويل</button>
+                        </div>
+                        <input type="number" step="any" id="modalMonthlyInstallment" placeholder="0" class="w-full px-3 py-2 border rounded-lg bg-white text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-1">تاريخ استحقاق القسط القادم:*</label>
+                        <input type="date" id="modalNextInstallmentDate" class="w-full px-3 py-2 border rounded-lg bg-white text-sm">
+                    </div>
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-emerald-700">إتمام البيع</button>
+                    <button type="button" onclick="closeSaleModal()" class="bg-gray-300 text-gray-700 px-4 py-2.5 rounded-lg text-sm font-bold">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- نافذة قائمة المتأخرين -->
+    <div id="overdueModal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4 no-print" onclick="closeOverdueModal()">
+        <div class="bg-white p-6 rounded-2xl max-w-4xl w-full max-h-[85vh] overflow-auto relative space-y-4 print-container" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-lg font-bold text-red-600">⚠️ قائمة المشترين المتأخرين عن السداد</h3>
+                <div class="flex gap-2 no-print">
+                    <button onclick="closeOverdueModal()" class="bg-gray-200 text-gray-700 w-8 h-8 rounded-full font-bold">×</button>
+                </div>
+            </div>
+            <div id="overdueListContainer" class="space-y-3"></div>
+        </div>
+    </div>
+
+    <!-- نافذة معاينة الطباعة -->
+    <div id="printModal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4 no-print" onclick="closePrintModal()">
+        <div class="bg-white p-6 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-auto relative space-y-4 print-container" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center border-b pb-3 no-print">
+                <h3 id="printModalTitle" class="text-lg font-bold text-blue-700">معاينة الطباعة</h3>
+                <div class="flex gap-2">
+                    <button onclick="window.print()" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm font-bold">🖨️ طباعة الآن</button>
+                    <button onclick="closePrintModal()" class="bg-gray-200 text-gray-700 w-8 h-8 rounded-full font-bold">×</button>
+                </div>
+            </div>
+            <div id="printModalBody" class="space-y-4 text-sm text-gray-800"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCZ5A94Fy4IxJp0Ks9UbcR56cNs35dxAd4",
+            authDomain: "abo-dabi-47dbc.firebaseapp.com",
+            projectId: "abo-dabi-47dbc",
+            storageBucket: "abo-dabi-47dbc.firebasestorage.app",
+            messagingSenderId: "548872730657",
+            appId: "1:548872730657:web:fbcadb1d629b19f5f1cb60",
+            measurementId: "G-8L41S79H9B"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // ربط الدوال مع النطاق العام ليتمكن باقي السستم من حفظ واسترجاع البيانات سحابياً
+        window.cloudSave = async function(usersData) {
+            try {
+                await set(ref(db, 'multiUsersSystem_v3'), usersData);
+                console.log("تم الحفظ سحابياً بنجاح");
+            } catch (error) {
+                console.error("خطأ في الحفظ السحابي:", error);
+            }
+        };
+
+        window.cloudLoad = async function() {
+            try {
+                const dbRef = ref(db);
+                const snapshot = await get(child(dbRef, 'multiUsersSystem_v3'));
+                if (snapshot.exists()) {
+                    return snapshot.val();
+                }
+                return null;
+            } catch (error) {
+                console.error("خطأ في جلب البيانات من السحابة:", error);
+                return null;
+            }
+        };
+    </script>
+
+    <!-- الكود البرمجي للتطبيق -->
+    <script>
+        let usersDB = JSON.parse(localStorage.getItem('multiUsersSystem_v3')) || {
+            "وهبي": { password: "1989", contracts: [] }
+        };
+
+        let currentUser = null;
+        let contracts = [];
+        let activeIQDTargetId = null;
+        let currentFilter = 'all';
+
+        let inactivityTimer = null;
+        const INACTIVITY_LIMIT = 5 * 60 * 1000;
+
+        function resetInactivityTimer() {
+            if (!currentUser) return;
+            clearTimeout(inactivityTimer);
+            inactivityTimer = setTimeout(() => {
+                logout();
+                alert('تم قفل النظام تلقائياً لعدم النشاط (مرت 5 دقائق). يرجى إدخال الرمز السري للدخول مجدداً.');
+            }, INACTIVITY_LIMIT);
+        }
+
+        ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(eventName => {
+            window.addEventListener(eventName, resetInactivityTimer);
+        });
+
+        // مزامنة البيانات عند تشغيل الصفحة مع السحابة
+        async function initCloudSync() {
+            if (window.cloudLoad) {
+                const cloudData = await window.cloudLoad();
+                if (cloudData) {
+                    usersDB = cloudData;
+                    localStorage.setItem('multiUsersSystem_v3', JSON.stringify(usersDB));
+                    if (currentUser && usersDB[currentUser]) {
+                        contracts = usersDB[currentUser].contracts || [];
+                        updateDashboard();
+                        checkAndRenderOverdueBanner();
+                        renderContracts();
+                    }
+                }
+            }
+        }
+
+        function openIQDConverter(targetId) {
+            activeIQDTargetId = targetId;
+            document.getElementById('iqdAmountInput').value = '';
+            document.getElementById('iqdResultPreview').innerText = '0 $';
+            document.getElementById('iqdModal').classList.remove('hidden');
+        }
+
+        function closeIQDConverter() {
+            activeIQDTargetId = null;
+            document.getElementById('iqdModal').classList.add('hidden');
+        }
+
+        document.addEventListener('input', function(e) {
+            if (e.target && (e.target.id === 'iqdAmountInput' || e.target.id === 'iqdRateInput')) {
+                let amt = parseFloat(document.getElementById('iqdAmountInput').value) || 0;
+                let rate = parseFloat(document.getElementById('iqdRateInput').value) || 1500;
+                let res = rate > 0 ? (amt / rate).toFixed(2) : 0;
+                document.getElementById('iqdResultPreview').innerText = formatNumber(res) + ' $';
+            }
+        });
+
+        function applyIQDConversion() {
+            let amt = parseFloat(document.getElementById('iqdAmountInput').value) || 0;
+            let rate = parseFloat(document.getElementById('iqdRateInput').value) || 1500;
+            if (rate <= 0) return;
+            let res = parseFloat((amt / rate).toFixed(2));
+
+            if (activeIQDTargetId) {
+                let targetEl = document.getElementById(activeIQDTargetId);
+                if (targetEl) {
+                    targetEl.value = res;
+                    targetEl.dispatchEvent(new Event('input'));
+                    targetEl.dispatchEvent(new Event('change'));
+                }
+            }
+            closeIQDConverter();
+        }
+
+        function checkAuth() {
+            if (currentUser && usersDB[currentUser]) {
+                contracts = usersDB[currentUser].contracts || [];
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('mainSystem').classList.remove('hidden');
+                document.getElementById('welcomeTitle').innerText = `نظام إدارة السيارات (المستخدم: ${currentUser})`;
+                
+                let buttonsHTML = `
+                    <button onclick="openChangePasswordModal()" class="bg-purple-600 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-purple-700 transition">
+                        🔑 تغيير الرمز السري
+                    </button>
+                `;
+
+                if (currentUser === "وهبي") {
+                    buttonsHTML += `
+                        <button onclick="openRegisterModal()" class="bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-emerald-800 transition">
+                            👤 إضافة شخص جديد
+                        </button>
+                    `;
+                }
+
+                buttonsHTML += `
+                    <button onclick="openOverdueModal()" class="bg-red-600 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-red-700 transition">
+                        ⚠️ قائمة المتأخرين
+                    </button>
+                    <button onclick="exportDatabase()" class="bg-teal-600 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-teal-700 transition">
+                        💾 تصدير
+                    </button>
+                    <label class="bg-blue-600 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-700 transition cursor-pointer">
+                        📂 استيراد
+                        <input type="file" id="importFile" accept=".json" onchange="importDatabase(event)" class="hidden">
+                    </label>
+                    <button onclick="logout()" class="bg-gray-600 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-gray-700 transition">
+                        🚪 تسجيل خروج
+                    </button>
+                `;
+
+                document.getElementById('topActionButtons').innerHTML = buttonsHTML;
+
+                updateDashboard();
+                checkAndRenderOverdueBanner();
+                renderContracts();
+                resetInactivityTimer();
+                initCloudSync();
+            } else {
+                currentUser = null;
+                clearTimeout(inactivityTimer);
+                document.getElementById('mainSystem').classList.add('hidden');
+                document.getElementById('loginScreen').classList.remove('hidden');
+            }
+        }
+
+        function handleLogin(event) {
+            event.preventDefault();
+            const u = document.getElementById('loginUsername').value.trim();
+            const p = document.getElementById('loginPassword').value.trim();
+
+            if (usersDB[u] && usersDB[u].password === p) {
+                currentUser = u;
+                document.getElementById('loginUsername').value = '';
+                document.getElementById('loginPassword').value = '';
+                checkAuth();
+            } else {
+                alert('اسم المستخدم أو الرمز السري غير صحيح!');
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            clearTimeout(inactivityTimer);
+            checkAuth();
+        }
+
+        function openRegisterModal() {
+            if (currentUser !== "وهبي") {
+                alert('عذراً، هذه الصلاحية مخصصة للمدير الأساسي فقط.');
+                return;
+            }
+            document.getElementById('newRegUsername').value = '';
+            document.getElementById('newRegPassword').value = '';
+            document.getElementById('registerModal').classList.remove('hidden');
+        }
+
+        function closeRegisterModal() {
+            document.getElementById('registerModal').classList.add('hidden');
+        }
+
+        async function handleRegisterNewUser(event) {
+            event.preventDefault();
+            if (currentUser !== "وهبي") return;
+
+            const u = document.getElementById('newRegUsername').value.trim();
+            const p = document.getElementById('newRegPassword').value.trim();
+
+            if (!u || !p) return;
+
+            if (usersDB[u]) {
+                alert('هذا المستخدم موجود مسبقاً، اختر اسمًا آخر.');
+                return;
+            }
+
+            usersDB[u] = { password: p, contracts: [] };
+            localStorage.setItem('multiUsersSystem_v3', JSON.stringify(usersDB));
+            if (window.cloudSave) await window.cloudSave(usersDB);
+
+            closeRegisterModal();
+            alert(`تم إنشاء السستم والحساب للمستخدم "${u}" بنجاح!`);
+        }
+
+        function openChangePasswordModal() {
+            document.getElementById('newPasswordInput').value = '';
+            document.getElementById('changePasswordModal').classList.remove('hidden');
+        }
+
+        function closeChangePasswordModal() {
+            document.getElementById('changePasswordModal').classList.add('hidden');
+        }
+
+        async function handleChangePassword(event) {
+            event.preventDefault();
+            const newPass = document.getElementById('newPasswordInput').value.trim();
+            if (!newPass) return;
+
+            if (currentUser && usersDB[currentUser]) {
+                usersDB[currentUser].password = newPass;
+                localStorage.setItem('multiUsersSystem_v3', JSON.stringify(usersDB));
+                if (window.cloudSave) await window.cloudSave(usersDB);
+
+                closeChangePasswordModal();
+                alert('تم تغيير الرمز السري بنجاح!');
+            }
+        }
+
+        async function saveCurrentUserData() {
+            if (currentUser && usersDB[currentUser]) {
+                usersDB[currentUser].contracts = contracts;
+                localStorage.setItem('multiUsersSystem_v3', JSON.stringify(usersDB));
+                if (window.cloudSave) {
+                    await window.cloudSave(usersDB);
+                }
+            }
+        }
+
+        function formatNumber(num) {
+            if (num === null || num === undefined || isNaN(num)) return '0';
+            let parts = Number(num).toFixed(2).split('.');
+            let integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            let decimalPart = parts[1];
+            return decimalPart === '00' ? integerPart : integerPart + ',' + decimalPart;
+        }
+
+        function checkAndRenderOverdueBanner() {
+            const todayStr = new Date().toISOString().split('T')[0];
+            let overdueCount = 0;
+
+            contracts.forEach(contract => {
+                if (contract.isSold && contract.isInstallment && contract.nextInstallmentDate) {
+                    let totalPaid = (contract.installments || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+                    let remainingSelling = contract.sellingPrice - (totalPaid + parseFloat(contract.downPayment || 0));
+                    if (todayStr >= contract.nextInstallmentDate && remainingSelling > 0) {
+                        overdueCount++;
+                    }
+                }
+            });
+
+            const bannerEl = document.getElementById('quickOverdueAlertBanner');
+            if (overdueCount > 0) {
+                bannerEl.className = "bg-red-600 text-white p-4 rounded-2xl shadow-md flex justify-between items-center alert-pulse no-print cursor-pointer";
+                bannerEl.innerHTML = `
+                    <div class="flex items-center gap-3" onclick="openOverdueModal()">
+                        <span class="text-2xl">⚠️</span>
+                        <div>
+                            <h4 class="font-bold text-sm">تنبيه هام: توجد (${overdueCount}) أقساط متأخرة أو مستحقة السداد اليوم!</h4>
+                            <p class="text-xs text-red-100">انقر هنا لعرض قائمة المتأخرين وتسجيل الدفعات.</p>
+                        </div>
+                    </div>
+                    <button onclick="openOverdueModal()" class="bg-white text-red-700 px-3 py-1.5 rounded-xl font-bold text-xs hover:bg-red-50 transition shadow">
+                        عرض القائمة الآن
+                    </button>
+                `;
+                bannerEl.classList.remove('hidden');
+            } else {
+                bannerEl.classList.add('hidden');
+            }
+        }
+
+        function updateDashboard() {
+            let totalPurchaseAndExp = 0; 
+            let totalCollectedOverall = 0; 
+            let totalProfit = 0;
+            let totalRemaining = 0;
+
+            contracts.forEach(contract => {
+                let totalExpenses = (contract.expenses || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+                let capitalWithExp = contract.purchasePrice + totalExpenses;
+                let totalPaid = (contract.installments || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+                let downP = parseFloat(contract.downPayment) || 0;
+                let totalCollected = totalPaid + downP;
+                let isSold = contract.isSold && contract.sellingPrice > 0;
+
+                totalPurchaseAndExp += capitalWithExp;
+                totalCollectedOverall += totalCollected;
+
+                if (isSold) {
+                    let netProfit = contract.sellingPrice - capitalWithExp;
+                    totalProfit += netProfit;
+
+                    if (contract.isInstallment) {
+                        let rem = contract.sellingPrice - totalCollected;
+                        if (rem > 0) totalRemaining += rem;
+                    }
+                }
+            });
+
+            let grandTotalCapital = totalPurchaseAndExp - totalCollectedOverall;
+            if (grandTotalCapital < 0) grandTotalCapital = 0;
+
+            document.getElementById('statTotalCapital').innerText = formatNumber(grandTotalCapital) + ' $';
+            
+            let profitEl = document.getElementById('statTotalProfit');
+            profitEl.innerText = formatNumber(totalProfit) + ' $';
+            profitEl.className = `text-xl font-bold mt-1 ${totalProfit >= 0 ? 'text-emerald-700' : 'text-red-600'}`;
+
+            document.getElementById('statTotalRemaining').innerText = formatNumber(totalRemaining) + ' $';
+        }
+
+        function exportDatabase() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(contracts, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            const dateStr = new Date().toISOString().split('T')[0];
+            downloadAnchor.setAttribute("download", `car_database_${currentUser}_${dateStr}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importDatabase(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (Array.isArray(importedData)) {
+                        if (confirm(`استيراد هذا الملف سيحدث سستم المستخدم (${currentUser}) بـ ${importedData.length} سجل. هل أنت متأكد؟`)) {
+                            contracts = importedData;
+                            await saveAndRender();
+                            alert('تم استيراد البيانات وتحديث السستم سحابياً ومحلياً بنجاح!');
+                        }
+                    } else {
+                        alert('ملف النسخ الاحتياطي غير صالح.');
+                    }
+                } catch (err) {
+                    alert('حدث خطأ أثناء قراءة الملف.');
+                }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        async function handleFormSubmit(event) {
+            event.preventDefault();
+            const carTypeVal = document.getElementById('carType').value.trim();
+            const carNumberVal = document.getElementById('carNumber').value.trim();
+            const purchasePriceVal = parseFloat(document.getElementById('purchasePrice').value) || 0;
+            const purchaseDateVal = document.getElementById('purchaseDate').value;
+
+            if (!carTypeVal || !carNumberVal || !purchaseDateVal) return;
+
+            const newContract = {
+                id: Date.now(),
+                carType: carTypeVal,
+                carNumber: carNumberVal,
+                purchasePrice: purchasePriceVal,
+                purchaseDate: purchaseDateVal,
+                buyerName: '',
+                buyerPhone: '',
+                sellingPrice: 0,
+                downPayment: 0,
+                monthlyInstallment: 0,
+                nextInstallmentDate: '',
+                sellingDate: '',
+                saleType: 'none',
+                isSold: false,
+                isInstallment: false,
+                installments: [], 
+                expenses: [],     
+                showDetails: true, 
+                showEditFullForm: false,
+                showExpenses: true 
+            };
+
+            contracts.unshift(newContract);
+            await saveAndRender();
+            document.getElementById('carForm').reset();
+        }
+
+        async function saveAndRender() {
+            await saveCurrentUserData();
+            updateDashboard();
+            checkAndRenderOverdueBanner();
+            renderContracts();
+        }
+
+        function toggleDetails(contractId) {
+            const contract = contracts.find(c => c.id === contractId);
+            if (contract) {
+                contract.showDetails = !contract.showDetails;
+                saveAndRender();
+            }
+        }
+
+        function setFilter(filterType) {
+            currentFilter = filterType;
+            
+            ['all', 'available', 'sold'].forEach(type => {
+                const btn = document.getElementById(`filterBtn_${type}`);
+                if (btn) {
+                    if (type === filterType) {
+                        btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white transition";
+                    } else {
+                        btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-200 text-gray-700 hover:bg-gray-300 transition";
+                    }
+                }
+            });
+
+            renderContracts();
+        }
+
+        function renderContracts() {
+            const container = document.getElementById('contractsContainer');
+            container.innerHTML = '';
+            
+            const searchInput = document.getElementById('searchInput');
+            const searchQuery = searchInput ? searchInput.value.trim().toLowerCase() : '';
+
+            const filteredContracts = contracts.filter(contract => {
+                const carType = (contract.carType || '').toLowerCase();
+                const carNumber = (contract.carNumber || '').toLowerCase();
+                const buyerName = (contract.buyerName || '').toLowerCase();
+                const buyerPhone = (contract.buyerPhone || '').toLowerCase();
+
+                let isSold = contract.isSold && contract.sellingPrice > 0;
+
+                if (currentFilter === 'available' && isSold) return false;
+                if (currentFilter === 'sold' && !isSold) return false;
+
+                return carType.includes(searchQuery) || 
+                       carNumber.includes(searchQuery) || 
+                       buyerName.includes(searchQuery) || 
+                       buyerPhone.includes(searchQuery);
+            });
+
+            if (filteredContracts.length === 0) {
+                container.innerHTML = `<p class="text-center text-gray-400 py-6">لا توجد سيارات مطابقة للعرض الحالي</p>`;
+                return;
+            }
+
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            filteredContracts.forEach((contract) => {
+                if (!contract.expenses) contract.expenses = [];
+                if (!contract.installments) contract.installments = [];
+
+                let totalExpenses = contract.expenses.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+                let totalCapitalWithExpenses = contract.purchasePrice + totalExpenses;
+                let totalPaid = contract.installments.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+                let downP = parseFloat(contract.downPayment) || 0;
+                let totalCollectedForCar = totalPaid + downP;
+                
+                let carRemainingCapital = totalCapitalWithExpenses - totalCollectedForCar;
+                if (carRemainingCapital < 0) carRemainingCapital = 0;
+
+                let isSold = contract.isSold && contract.sellingPrice > 0;
+                let remainingSelling = isSold && contract.isInstallment ? contract.sellingPrice - totalCollectedForCar : 0;
+                let netProfit = isSold ? contract.sellingPrice - totalCapitalWithExpenses : 0;
+
+                let isThisOverdue = false;
+                if (isSold && contract.isInstallment && contract.nextInstallmentDate) {
+                    if (todayStr >= contract.nextInstallmentDate && remainingSelling > 0) {
+                        isThisOverdue = true;
+                    }
+                }
+
+                let card = document.createElement('div');
+                card.className = `border rounded-xl bg-white shadow-sm overflow-hidden transition ${isThisOverdue ? 'border-red-500 border-2' : ''}`;
+
+                let headerHTML = `
+                    <div class="p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 cursor-pointer hover:bg-gray-50 transition" onclick="toggleDetails(${contract.id})">
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <span class="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded font-bold">${contract.showDetails ? '▲ إخفاء' : '▼ التفاصيل'}</span>
+                            <h3 class="text-base font-bold text-blue-700">${contract.carType} <span class="text-xs text-gray-500 font-normal">(${contract.carNumber})</span></h3>
+                            ${isSold ? 
+                                (contract.saleType === 'cash' ? '<span class="bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full font-bold">مباعة (نقداً)</span>' : '<span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-bold">مباعة (أقساط)</span>') : 
+                                '<span class="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-bold">معروضة للبيع</span>'
+                            }
+                            ${isThisOverdue ? '<span class="bg-red-600 text-white text-xs px-2 py-0.5 rounded-full font-bold alert-pulse">⚠️ قسط متأخر</span>' : ''}
+                        </div>
+                        <div class="text-sm text-gray-700">
+                            المشتري: <strong class="text-gray-900">${isSold ? (contract.buyerName || 'غير متوفر') : 'لم يتم البيع بعد'}</strong>
+                        </div>
+                    </div>
+                `;
+
+                let profitColorClass = netProfit >= 0 ? 'text-emerald-600' : 'text-red-600';
+                let profitDisplayStr = isSold ? (netProfit >= 0 ? '+' + formatNumber(netProfit) + ' $' : formatNumber(netProfit) + ' $') : '---';
+
+                let detailsHTML = `
+                    <div class="p-4 bg-gray-50 border-t space-y-4 ${contract.showDetails ? '' : 'hidden'}">
+                        <div class="flex justify-end gap-2 flex-wrap no-print items-center border-b pb-3">
+                            ${!isSold ? `<button onclick="openSaleModal(${contract.id})" class="bg-emerald-600 text-white px-3 py-1 rounded text-xs hover:bg-emerald-700 font-bold">💰 تسجيل بيع</button>` : ''}
+                            ${isSold && contract.isInstallment ? `<button onclick="printCustomerReceipt(${contract.id})" class="bg-teal-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-teal-700">🧾 وصل قبض وتسديدات العميل</button>` : ''}
+                            <button onclick="printPersonalReport(${contract.id})" class="bg-blue-700 text-white px-3 py-1 rounded text-xs font-bold">🖨️ طبع لي شخصي</button>
+                            <button onclick="toggleEditFullForm(${contract.id})" class="bg-purple-600 text-white px-3 py-1 rounded text-xs font-bold">✏️ تعديل</button>
+                            <button onclick="toggleExpenses(${contract.id})" class="bg-amber-600 text-white px-3 py-1 rounded text-xs">مصروفات (${formatNumber(totalExpenses)} $)</button>
+                            <button onclick="requestDeleteContract(${contract.id})" class="bg-red-500 text-white px-3 py-1 rounded text-xs">حذف</button>
+                        </div>
+
+                        <!-- نموذج تعديل المركبة -->
+                        <div id="editFullSection_${contract.id}" class="bg-purple-50 p-4 rounded-xl border border-purple-200 space-y-3 no-print ${contract.showEditFullForm ? '' : 'hidden'}">
+                            <h4 class="font-bold text-purple-900 text-sm border-b pb-2">تعديل بيانات المركبة</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                                <div><label class="block mb-1">نوع السيارة:*</label><input type="text" id="ef_carType_${contract.id}" value="${contract.carType || ''}" class="w-full px-2 py-1.5 border rounded bg-white"></div>
+                                <div><label class="block mb-1">رقم المركبة:*</label><input type="text" id="ef_carNumber_${contract.id}" value="${contract.carNumber || ''}" class="w-full px-2 py-1.5 border rounded bg-white"></div>
+                                <div>
+                                    <div class="flex justify-between items-center mb-1">
+                                        <label>سعر الشراء ($):*</label>
+                                        <button type="button" onclick="openIQDConverter('ef_purchasePrice_${contract.id}')" class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">💱 تحويل عراقي</button>
+                                    </div>
+                                    <input type="number" step="any" id="ef_purchasePrice_${contract.id}" value="${contract.purchasePrice || 0}" class="w-full px-2 py-1.5 border rounded bg-white">
+                                </div>
+                                <div><label class="block mb-1">تاريخ الشراء:*</label><input type="date" id="ef_purchaseDate_${contract.id}" value="${contract.purchaseDate || ''}" class="w-full px-2 py-1.5 border rounded bg-white"></div>
+                                <div><label class="block mb-1">طريقة البيع:</label>
+                                    <select id="ef_saleType_${contract.id}" onchange="toggleEditFullInstallment(${contract.id})" class="w-full px-2 py-1.5 border rounded bg-white">
+                                        <option value="none" ${contract.saleType === 'none' ? 'selected' : ''}>لم تُبَع بعد</option>
+                                        <option value="cash" ${contract.saleType === 'cash' ? 'selected' : ''}>بيع نقداً</option>
+                                        <option value="installment" ${contract.saleType === 'installment' ? 'selected' : ''}>بيع بالأقساط</option>
+                                    </select>
+                                </div>
+                                <div><label class="block mb-1">اسم المشتري:</label><input type="text" id="ef_buyerName_${contract.id}" value="${contract.buyerName || ''}" class="w-full px-2 py-1.5 border rounded bg-white"></div>
+                                <div><label class="block mb-1">رقم هاتف المشتري:</label><input type="text" id="ef_buyerPhone_${contract.id}" value="${contract.buyerPhone || ''}" class="w-full px-2 py-1.5 border rounded bg-white"></div>
+                                <div>
+                                    <div class="flex justify-between items-center mb-1">
+                                        <label>سعر البيع الإجمالي ($):</label>
+                                        <button type="button" onclick="openIQDConverter('ef_sellingPrice_${contract.id}')" class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">💱 تحويل عراقي</button>
+                                    </div>
+                                    <input type="number" step="any" id="ef_sellingPrice_${contract.id}" value="${contract.sellingPrice || 0}" class="w-full px-2 py-1.5 border rounded bg-white">
+                                </div>
+                                <div><label class="block mb-1">تاريخ البيع:</label><input type="date" id="ef_sellingDate_${contract.id}" value="${contract.sellingDate || ''}" class="w-full px-2 py-1.5 border rounded bg-white"></div>
+                            </div>
+                            <div id="ef_installmentFields_${contract.id}" class="grid grid-cols-1 md:grid-cols-3 gap-3 bg-white p-3 rounded-lg border text-xs ${contract.isInstallment ? '' : 'hidden'}">
+                                <div>
+                                    <div class="flex justify-between items-center mb-1">
+                                        <label>المقدمة ($):</label>
+                                        <button type="button" onclick="openIQDConverter('ef_downPayment_${contract.id}')" class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">💱 تحويل</button>
+                                    </div>
+                                    <input type="number" step="any" id="ef_downPayment_${contract.id}" value="${contract.downPayment || 0}" class="w-full px-2 py-1.5 border rounded">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between items-center mb-1">
+                                        <label>القسط الشهري ($):</label>
+                                        <button type="button" onclick="openIQDConverter('ef_monthlyInstallment_${contract.id}')" class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">💱 تحويل</button>
+                                    </div>
+                                    <input type="number" step="any" id="ef_monthlyInstallment_${contract.id}" value="${contract.monthlyInstallment || 0}" class="w-full px-2 py-1.5 border rounded">
+                                </div>
+                                <div><label class="block mb-1">تاريخ الاستحقاق القادم:*</label><input type="date" id="ef_nextInstallmentDate_${contract.id}" value="${contract.nextInstallmentDate || ''}" class="w-full px-2 py-1.5 border rounded"></div>
+                            </div>
+                            <div class="flex gap-2 pt-2">
+                                <button onclick="saveFullEdit(${contract.id})" class="bg-purple-600 text-white px-4 py-2 rounded text-xs font-bold">حفظ التعديلات</button>
+                                <button onclick="toggleEditFullForm(${contract.id})" class="bg-gray-400 text-white px-4 py-2 rounded text-xs">إلغاء</button>
+                            </div>
+                        </div>
+
+                        <!-- ملخص مالي للسيارة -->
+                        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 text-xs bg-white p-3 rounded-lg border text-center items-center">
+                            <div class="p-1 border-l">الشراء: <strong class="block">${formatNumber(contract.purchasePrice)} $</strong></div>
+                            <div class="p-1 border-l">المصروفات: <strong class="block text-amber-600">${formatNumber(totalExpenses)} $</strong></div>
+                            <div class="p-1 border-l bg-blue-50 rounded">إجمالي التكلفة: <strong class="block text-blue-700">${formatNumber(totalCapitalWithExpenses)} $</strong></div>
+                            <div class="p-1 border-l bg-indigo-50 rounded">المتبقي بالتكلفة: <strong class="block text-indigo-700">${formatNumber(carRemainingCapital)} $</strong></div>
+                            <div class="p-1 border-l">سعر البيع: <strong class="block">${isSold ? formatNumber(contract.sellingPrice) + ' $' : '---'}</strong></div>
+                            <div class="p-1 border-l">متبقي الأقساط: <strong class="block text-purple-600">${isSold && contract.isInstallment ? formatNumber(remainingSelling) + ' $' : '---'}</strong></div>
+                            <div class="p-1 border-l">صافي الربح: <strong class="block ${profitColorClass}">${profitDisplayStr}</strong></div>
+                            <div class="p-1">الاستحقاق القادم: <span class="block ${isThisOverdue ? 'text-red-600 font-bold alert-pulse' : 'text-gray-700'} text-[11px]">${contract.nextInstallmentDate || '---'}</span></div>
+                        </div>
+
+                        <!-- مصروفات السيارة -->
+                        <div id="expensesSection_${contract.id}" class="bg-amber-50/50 p-4 rounded-lg border border-amber-200 space-y-3 ${contract.showExpenses ? '' : 'hidden'}">
+                            <div class="flex justify-between items-center">
+                                <h4 class="font-bold text-amber-800 text-sm">مصروفات المركبة</h4>
+                                <span class="text-xs">المجموع: <strong id="expTotal_${contract.id}">${formatNumber(totalExpenses)} $</strong></span>
+                            </div>
+                            <table class="w-full text-right text-xs border-collapse bg-white">
+                                <thead><tr class="bg-amber-100 text-amber-900"><th class="p-2 border">التاريخ</th><th class="p-2 border">السبب</th><th class="p-2 border">المبلغ ($)</th><th class="p-2 border text-center no-print">إجراء</th></tr></thead>
+                                <tbody>
+                                    ${contract.expenses.length === 0 ? `<tr><td colspan="4" class="text-center p-2 text-gray-400">لا توجد مصروفات</td></tr>` : 
+                                      contract.expenses.map((exp, index) => `
+                                        <tr>
+                                            <td class="p-2 border"><input type="date" value="${exp.date || ''}" onchange="updateExpense(${contract.id}, ${index}, 'date', this.value)" class="w-full bg-transparent border-0 p-0 text-xs"></td>
+                                            <td class="p-2 border"><input type="text" value="${exp.reason || ''}" placeholder="السبب" oninput="updateExpense(${contract.id}, ${index}, 'reason', this.value)" class="w-full bg-transparent border-0 p-0 text-xs"></td>
+                                            <td class="p-2 border flex items-center gap-1">
+                                                <input type="number" step="any" id="expInput_${contract.id}_${index}" value="${exp.amount || ''}" placeholder="المبلغ" oninput="updateExpense(${contract.id}, ${index}, 'amount', this.value)" class="w-full bg-transparent border-0 p-0 text-xs">
+                                                <button type="button" onclick="openIQDConverterForExpense(${contract.id}, ${index})" class="text-[10px] bg-amber-200 text-amber-900 px-1 py-0.5 rounded font-bold no-print" title="تحويل من عراقي">💱</button>
+                                            </td>
+                                            <td class="p-2 border text-center no-print"><button onclick="requestRemoveExpense(${contract.id}, ${index})" class="text-red-500 font-bold">×</button></td>
+                                        </tr>`).join('')}
+                                </tbody>
+                            </table>
+                            <button onclick="addExpenseRow(${contract.id})" class="bg-amber-600 text-white px-3 py-1.5 rounded text-xs font-bold no-print">+ إضافة مصروف</button>
+                        </div>
+
+                        <!-- أقساط السيارة -->
+                        ${isSold && contract.isInstallment ? `
+                        <div class="bg-white p-4 rounded-lg border space-y-3">
+                            <div class="flex justify-between items-center flex-wrap gap-2">
+                                <h4 class="font-bold text-gray-700 text-sm">جدول الأقساط الشهرية | مقدم واصل: <span class="text-emerald-600">${formatNumber(contract.downPayment)} $</span> | القسط: <span class="text-blue-600">${formatNumber(contract.monthlyInstallment)} $</span></h4>
+                                <span class="text-xs">إجمالي المسدد: <strong class="text-green-600">${formatNumber(totalPaid + downP)} $</strong></span>
+                            </div>
+                            <table class="w-full text-right text-xs border-collapse">
+                                <thead><tr class="bg-gray-100"><th class="p-2 border">عنوان القسط</th><th class="p-2 border">تاريخ التسديد</th><th class="p-2 border">المبلغ ($)</th><th class="p-2 border">المتسلّم</th><th class="p-2 border text-center no-print">إجراء</th></tr></thead>
+                                <tbody>
+                                    ${contract.installments.length === 0 ? `<tr><td colspan="5" class="text-center p-2 text-gray-400">لا توجد أقساط مسجلة بعد</td></tr>` :
+                                      contract.installments.map((inst, index) => `
+                                        <tr>
+                                            <td class="p-2 border"><input type="text" value="${inst.installmentName || ''}" oninput="updateInstallment(${contract.id}, ${index}, 'installmentName', this.value)" class="w-full bg-transparent border-0 p-0 text-xs"></td>
+                                            <td class="p-2 border"><input type="date" value="${inst.date || ''}" onchange="updateInstallment(${contract.id}, ${index}, 'date', this.value)" class="w-full bg-transparent border-0 p-0 text-xs"></td>
+                                            <td class="p-2 border flex items-center gap-1">
+                                                <input type="number" step="any" id="instInput_${contract.id}_${index}" value="${inst.amount || ''}" oninput="updateInstallment(${contract.id}, ${index}, 'amount', this.value)" class="w-full bg-transparent border-0 p-0 text-xs">
+                                                <button type="button" onclick="openIQDConverterForInstallment(${contract.id}, ${index})" class="text-[10px] bg-amber-200 text-amber-900 px-1 py-0.5 rounded font-bold no-print" title="تحويل من عراقي">💱</button>
+                                            </td>
+                                            <td class="p-2 border"><input type="text" value="${inst.receiver || ''}" placeholder="اسم المتسلّم" oninput="updateInstallment(${contract.id}, ${index}, 'receiver', this.value)" class="w-full bg-transparent border-0 p-0 text-xs"></td>
+                                            <td class="p-2 border text-center no-print"><button onclick="requestRemoveInstallmentRow(${contract.id}, ${index})" class="text-red-500 font-bold">×</button></td>
+                                        </tr>`).join('')}
+                                </tbody>
+                            </table>
+                            <button onclick="addInstallmentRow(${contract.id})" class="bg-emerald-600 text-white px-3 py-1.5 rounded text-xs font-bold no-print">+ تسديد قسط جديد</button>
+                        </div>` : ''}
+                    </div>
+                `;
+
+                card.innerHTML = headerHTML + detailsHTML;
+                container.appendChild(card);
+            });
+        }
+
+        function openIQDConverterForExpense(contractId, expIndex) {
+            activeIQDTargetId = `expInput_${contractId}_${expIndex}`;
+            document.getElementById('iqdAmountInput').value = '';
+            document.getElementById('iqdResultPreview').innerText = '0 $';
+            document.getElementById('iqdModal').classList.remove('hidden');
+        }
+
+        function openIQDConverterForInstallment(contractId, instIndex) {
+            activeIQDTargetId = `instInput_${contractId}_${instIndex}`;
+            document.getElementById('iqdAmountInput').value = '';
+            document.getElementById('iqdResultPreview').innerText = '0 $';
+            document.getElementById('iqdModal').classList.remove('hidden');
+        }
+
+        let pendingDeleteAction = null;
+        function requestDeletePasswordModal(actionCallback, messageText) {
+            pendingDeleteAction = actionCallback;
+            document.getElementById('deleteReasonText').innerText = messageText || 'يرجى إدخال الرمز السري الخاص بك لإتمام عملية الحذف:';
+            document.getElementById('confirmDeletePassInput').value = '';
+            document.getElementById('deletePasswordModal').classList.remove('hidden');
+        }
+
+        function closeDeletePasswordModal() {
+            pendingDeleteAction = null;
+            document.getElementById('deletePasswordModal').classList.add('hidden');
+        }
+
+        function confirmDeleteAction(event) {
+            event.preventDefault();
+            const passInput = document.getElementById('confirmDeletePassInput').value.trim();
+
+            if (currentUser && usersDB[currentUser] && usersDB[currentUser].password === passInput) {
+                if (typeof pendingDeleteAction === 'function') {
+                    pendingDeleteAction();
+                }
+                closeDeletePasswordModal();
+            } else {
+                alert('الرمز السري غير صحيح! فشلت عملية الحذف.');
+            }
+        }
+
+        function requestDeleteContract(id) {
+            requestDeletePasswordModal(async () => {
+                contracts = contracts.filter(c => c.id !== id);
+                await saveAndRender();
+            }, 'حذف سجل المركبة بالكامل يتطلب إدخال الرمز السري:');
+        }
+
+        function requestRemoveExpense(contractId, index) {
+            requestDeletePasswordModal(async () => {
+                const contract = contracts.find(c => c.id === contractId);
+                if (contract && contract.expenses) {
+                    contract.expenses.splice(index, 1);
+                    await saveAndRender();
+                }
+            }, 'حذف سطر المصروف يتطلب إدخال الرمز السري:');
+        }
+
+        function requestRemoveInstallmentRow(contractId, index) {
+            requestDeletePasswordModal(async () => {
+                const contract = contracts.find(c => c.id === contractId);
+                if (contract && contract.installments) {
+                    contract.installments.splice(index, 1);
+                    await saveAndRender();
+                }
+            }, 'حذف سطر القسط يتطلب إدخال الرمز السري:');
+        }
+
+        function openSaleModal(contractId) {
+            document.getElementById('saleCarId').value = contractId;
+            document.getElementById('modalSaleType').value = 'cash';
+            document.getElementById('modalBuyerName').value = '';
+            document.getElementById('modalBuyerPhone').value = '';
+            document.getElementById('modalSellingPrice').value = '';
+            document.getElementById('modalSellingDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('modalDownPayment').value = '';
+            document.getElementById('modalMonthlyInstallment').value = '';
+            document.getElementById('modalNextInstallmentDate').value = new Date().toISOString().split('T')[0];
+            toggleModalInstallmentInputs();
+            document.getElementById('saleModal').classList.remove('hidden');
+        }
+
+        function closeSaleModal() { document.getElementById('saleModal').classList.add('hidden'); }
+
+        function toggleModalInstallmentInputs() {
+            const saleType = document.getElementById('modalSaleType').value;
+            const container = document.getElementById('modalInstallmentContainer');
+            if (saleType === 'installment') container.classList.remove('hidden');
+            else container.classList.add('hidden');
+        }
+
+        async function handleSaleSubmit(event) {
+            event.preventDefault();
+            const contractId = parseInt(document.getElementById('saleCarId').value);
+            const contract = contracts.find(c => c.id === contractId);
+            if (!contract) return;
+
+            const saleType = document.getElementById('modalSaleType').value;
+            const buyerName = document.getElementById('modalBuyerName').value.trim();
+            const sellingPrice = parseFloat(document.getElementById('modalSellingPrice').value) || 0;
+            const sellingDate = document.getElementById('modalSellingDate').value;
+
+            if (!buyerName || sellingPrice <= 0 || !sellingDate) return;
+
+            contract.isSold = true;
+            contract.saleType = saleType;
+            contract.buyerName = buyerName;
+            contract.buyerPhone = document.getElementById('modalBuyerPhone').value.trim();
+            contract.sellingPrice = sellingPrice;
+            contract.sellingDate = sellingDate;
+            contract.showDetails = true;
+
+            if (saleType === 'installment') {
+                const nextDate = document.getElementById('modalNextInstallmentDate').value;
+                if (!nextDate) {
+                    alert('يرجى تحديد تاريخ استحقاق القسط القادم');
+                    return;
+                }
+                contract.isInstallment = true;
+                contract.downPayment = parseFloat(document.getElementById('modalDownPayment').value) || 0;
+                contract.monthlyInstallment = parseFloat(document.getElementById('modalMonthlyInstallment').value) || 0;
+                contract.nextInstallmentDate = nextDate;
+            } else {
+                contract.isInstallment = false;
+                contract.downPayment = 0;
+                contract.monthlyInstallment = 0;
+                contract.nextInstallmentDate = '';
+                contract.installments = [];
+            }
+
+            closeSaleModal();
+            await saveAndRender();
+        }
+
+        function toggleEditFullForm(contractId) {
+            const contract = contracts.find(c => c.id === contractId);
+            contract.showEditFullForm = !contract.showEditFullForm;
+            saveAndRender();
+        }
+
+        function toggleEditFullInstallment(contractId) {
+            const saleType = document.getElementById(`ef_saleType_${contractId}`).value;
+            const container = document.getElementById(`ef_installmentFields_${contractId}`);
+            if (saleType === 'installment') container.classList.remove('hidden');
+            else container.classList.add('hidden');
+        }
+
+        async function saveFullEdit(contractId) {
+            const contract = contracts.find(c => c.id === contractId);
+            const cType = document.getElementById(`ef_carType_${contractId}`).value.trim();
+            const cNum = document.getElementById(`ef_carNumber_${contractId}`).value.trim();
+            const pPrice = parseFloat(document.getElementById(`ef_purchasePrice_${contractId}`).value) || 0;
+            const pDate = document.getElementById(`ef_purchaseDate_${contractId}`).value;
+            const saleType = document.getElementById(`ef_saleType_${contractId}`).value;
+            const bName = document.getElementById(`ef_buyerName_${contractId}`).value.trim();
+            const bPhone = document.getElementById(`ef_buyerPhone_${contractId}`).value.trim();
+            const sPrice = parseFloat(document.getElementById(`ef_sellingPrice_${contractId}`).value) || 0;
+            const sDate = document.getElementById(`ef_sellingDate_${contractId}`).value;
+
+            if (!cType || !cNum || !pDate) return;
+
+            let isSold = saleType !== 'none';
+            let isInstallment = saleType === 'installment';
+
+            contract.carType = cType;
+            contract.carNumber = cNum;
+            contract.purchasePrice = pPrice;
+            contract.purchaseDate = pDate;
+            contract.saleType = saleType;
+            contract.buyerName = bName;
+            contract.buyerPhone = bPhone;
+            contract.sellingPrice = isSold ? sPrice : 0;
+            contract.sellingDate = isSold ? sDate : '';
+            contract.isSold = isSold;
+            contract.isInstallment = isInstallment;
+
+            if (isInstallment) {
+                const nextDate = document.getElementById(`ef_nextInstallmentDate_${contractId}`).value;
+                contract.downPayment = parseFloat(document.getElementById(`ef_downPayment_${contractId}`).value) || 0;
+                contract.monthlyInstallment = parseFloat(document.getElementById(`ef_monthlyInstallment_${contractId}`).value) || 0;
+                contract.nextInstallmentDate = nextDate;
+            } else {
+                contract.downPayment = 0;
+                contract.monthlyInstallment = 0;
+                contract.nextInstallmentDate = '';
+                contract.installments = [];
+            }
+
+            contract.showEditFullForm = false;
+            contract.showDetails = true;
+            await saveAndRender();
+        }
+
+        function toggleExpenses(contractId) {
+            const contract = contracts.find(c => c.id === contractId);
+            contract.showExpenses = !contract.showExpenses;
+            saveAndRender();
+        }
+
+        async function addExpenseRow(contractId) {
+            const contract = contracts.find(c => c.id === contractId);
+            if(!contract.expenses) contract.expenses = [];
+            contract.expenses.push({ date: new Date().toISOString().split('T')[0], reason: '', amount: '' });
+            contract.showExpenses = true;
+            await saveAndRender();
+        }
+
+        async function updateExpense(contractId, index, field, value) {
+            const contract = contracts.find(c => c.id === contractId);
+            if (contract && contract.expenses[index]) {
+                contract.expenses[index][field] = value;
+                await saveCurrentUserData();
+                updateDashboard();
+                checkAndRenderOverdueBanner();
+                
+                let totalExpenses = contract.expenses.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+                const totalEl = document.getElementById(`expTotal_${contractId}`);
+                if (totalEl) totalEl.innerText = formatNumber(totalExpenses) + ' $';
+            }
+        }
+
+        async function addInstallmentRow(contractId) {
+            const contract = contracts.find(c => c.id === contractId);
+            if(!contract.installments) contract.installments = [];
+            
+            contract.installments.push({ 
+                installmentName: `قسط شهر ${contract.installments.length + 1}`, 
+                date: new Date().toISOString().split('T')[0], 
+                amount: contract.monthlyInstallment || '', 
+                receiver: currentUser 
+            });
+
+            if (contract.nextInstallmentDate) {
+                let d = new Date(contract.nextInstallmentDate);
+                d.setMonth(d.getMonth() + 1);
+                contract.nextInstallmentDate = d.toISOString().split('T')[0];
+            }
+
+            await saveAndRender();
+        }
+
+        async function updateInstallment(contractId, index, field, value) {
+            const contract = contracts.find(c => c.id === contractId);
+            if (contract && contract.installments[index]) {
+                contract.installments[index][field] = value;
+                await saveCurrentUserData();
+                updateDashboard();
+                checkAndRenderOverdueBanner();
+            }
+        }
+
+        async function payOverdueInstallment(contractId) {
+            const contract = contracts.find(c => c.id === contractId);
+            if (!contract) return;
+
+            if(!contract.installments) contract.installments = [];
+
+            contract.installments.push({
+                installmentName: `قسط عن موعد ${contract.nextInstallmentDate}`,
+                date: new Date().toISOString().split('T')[0],
+                amount: contract.monthlyInstallment || 0,
+                receiver: currentUser
+            });
+
+            if (contract.nextInstallmentDate) {
+                let d = new Date(contract.nextInstallmentDate);
+                d.setMonth(d.getMonth() + 1);
+                contract.nextInstallmentDate = d.toISOString().split('T')[0];
+            }
+
+            await saveAndRender();
+            openOverdueModal();
+        }
+
+        function openOverdueModal() {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const overdueContainer = document.getElementById('overdueListContainer');
+            overdueContainer.innerHTML = '';
+            let count = 0;
+
+            contracts.forEach(contract => {
+                if (contract.isSold && contract.isInstallment && contract.nextInstallmentDate) {
+                    let totalPaid = (contract.installments || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+                    let remainingSelling = contract.sellingPrice - (totalPaid + parseFloat(contract.downPayment || 0));
+
+                    if (todayStr >= contract.nextInstallmentDate && remainingSelling > 0) {
+                        count++;
+                        let itemDiv = document.createElement('div');
+                        itemDiv.className = 'bg-red-50 border border-red-200 p-3 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-3 text-sm';
+                        itemDiv.innerHTML = `
+                            <div>
+                                <strong>${contract.buyerName}</strong> (${contract.carType} - ${contract.carNumber})<br>
+                                <span class="text-xs text-red-600 font-bold">تاريخ استحقاق القسط: ${contract.nextInstallmentDate}</span>
+                            </div>
+                            <div class="flex items-center gap-3 flex-wrap">
+                                <div class="text-left">
+                                    <span class="bg-red-200 text-red-800 text-xs px-2 py-1 rounded-lg font-bold">مبلغ القسط المستحق: ${formatNumber(contract.monthlyInstallment)} $</span><br>
+                                    <span class="text-xs text-gray-600 mt-1 block">المتبقي الكلي بذمته: ${formatNumber(remainingSelling)} $</span>
+                                </div>
+                                <button onclick="payOverdueInstallment(${contract.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg text-xs font-bold no-print shadow">
+                                    ✅ تم التسديد (دفع القسط)
+                                </button>
+                            </div>
+                        `;
+                        overdueContainer.appendChild(itemDiv);
+                    }
+                }
+            });
+
+            if (count === 0) overdueContainer.innerHTML = `<p class="text-center text-gray-400 py-6">لا توجد أقساط متأخرة حالياً! جميع المشترين مسددون لالتزاماتهم حتى تاريخ اليوم.</p>`;
+            document.getElementById('overdueModal').classList.remove('hidden');
+        }
+
+        function closeOverdueModal() { document.getElementById('overdueModal').classList.add('hidden'); }
+
+        function printCustomerReceipt(contractId) {
+            const contract = contracts.find(c => c.id === contractId);
+            if (!contract) return;
+
+            let totalPaid = (contract.installments || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+            let downP = parseFloat(contract.downPayment) || 0;
+            let totalCollected = totalPaid + downP;
+            let remainingSelling = contract.sellingPrice - totalCollected;
+            if (remainingSelling < 0) remainingSelling = 0;
+
+            let installmentsRows = (contract.installments || []).length > 0 ? 
+                contract.installments.map((i, idx) => `
+                    <tr>
+                        <td class="border p-2 text-center">${idx + 1}</td>
+                        <td class="border p-2">${i.installmentName || 'قسط شهري'}</td>
+                        <td class="border p-2">${i.date || '---'}</td>
+                        <td class="border p-2 font-bold text-emerald-700">${formatNumber(i.amount)} $</td>
+                        <td class="border p-2">${i.receiver || '---'}</td>
+                    </tr>
+                `).join('') :
+                `<tr><td colspan="5" class="border p-3 text-center text-gray-400">لم يتم تسديد أي أقساط بعد (يقتصر الواصل على المقدمة فقط)</td></tr>`;
+
+            document.getElementById('printModalTitle').innerText = 'وصل قبض وكشف حساب الأقساط للعميل';
+            document.getElementById('printModalBody').innerHTML = `
+                <div class="text-center space-y-1 border-b pb-4">
+                    <h2 class="text-2xl font-bold text-teal-800">وصل قبض وكشف حساب المشتري</h2>
+                    <p class="text-xs text-gray-500">صادر عن معرض السيارات | التاريخ: ${new Date().toISOString().split('T')[0]}</p>
+                </div>
+
+                <div class="space-y-4 text-xs">
+                    <div class="bg-teal-50 p-3 rounded-xl border border-teal-200 grid grid-cols-2 gap-2">
+                        <div>اسم المشتري الكريم: <strong class="text-gray-900 text-sm">${contract.buyerName || '---'}</strong></div>
+                        <div>رقم الهاتف: <strong>${contract.buyerPhone || '---'}</strong></div>
+                        <div>نوع المركبة: <strong>${contract.carType}</strong></div>
+                        <div>رقم المركبة: <strong>${contract.carNumber}</strong></div>
+                        <div>سعر البيع الإجمالي: <strong class="text-blue-700">${formatNumber(contract.sellingPrice)} $</strong></div>
+                        <div>تاريخ البيع: <strong>${contract.sellingDate || '---'}</strong></div>
+                    </div>
+
+                    <div class="bg-gray-50 p-3 rounded-xl border space-y-1">
+                        <div class="font-bold text-gray-800 text-sm mb-2 border-b pb-1">تفاصيل الدفعة المقدمة (الواصل الأول):</div>
+                        <div class="flex justify-between">
+                            <span>مبلغ المقدمة (الواصل): <strong class="text-emerald-700">${formatNumber(contract.downPayment)} $</strong></span>
+                            <span>تاريخ البيع / القبض: <strong>${contract.sellingDate || '---'}</strong></span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="font-bold text-gray-800 text-sm mb-2">سجل الأقساط والدفعات اللاحقة المسددة:</div>
+                        <table class="w-full text-right border-collapse text-xs bg-white">
+                            <thead>
+                                <tr class="bg-teal-100 text-teal-900">
+                                    <th class="border p-2 text-center">#</th>
+                                    <th class="border p-2">اسم البيان / القسط</th>
+                                    <th class="border p-2">تاريخ التسديد</th>
+                                    <th class="border p-2">المبلغ المسدد</th>
+                                    <th class="border p-2">المتسلّم (الموظف)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${installmentsRows}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="bg-blue-50 p-3 rounded-xl border border-blue-200 grid grid-cols-3 gap-2 text-center font-bold text-sm">
+                        <div class="p-1 border-l">إجمالي الواصل (المقدمة + الأقساط): <span class="block text-emerald-600 mt-1">${formatNumber(totalCollected)} $</span></div>
+                        <div class="p-1 border-l">القسط الشهري المتفق عليه: <span class="block text-blue-600 mt-1">${formatNumber(contract.monthlyInstallment)} $</span></div>
+                        <div class="p-1">المبلغ المتبقي بذمة العميل: <span class="block text-red-600 mt-1">${formatNumber(remainingSelling)} $</span></div>
+                    </div>
+
+                    <div class="pt-6 flex justify-between text-center text-xs px-8">
+                        <div>
+                            <p class="mb-8">توقيع المُسلّم (المعرض)</p>
+                            <strong>___________________</strong>
+                        </div>
+                        <div>
+                            <p class="mb-8">توقيع المُستلم (العميل)</p>
+                            <strong>___________________</strong>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('printModal').classList.remove('hidden');
+        }
+
+        function printPersonalReport(contractId) {
+            const contract = contracts.find(c => c.id === contractId);
+            const totalExpenses = (contract.expenses || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+            let totalPaid = (contract.installments || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+            let downP = parseFloat(contract.downPayment) || 0;
+            let totalCollected = totalPaid + downP;
+            let capitalWithExp = contract.purchasePrice + totalExpenses;
+            let netProfit = contract.isSold && contract.sellingPrice ? contract.sellingPrice - capitalWithExp : 0;
+
+            let expensesRows = contract.expenses.length > 0 ? 
+                contract.expenses.map(e => `<tr><td class="border p-1.5">${e.date || '---'}</td><td class="border p-1.5">${e.reason || '---'}</td><td class="border p-1.5">${formatNumber(e.amount)} $</td></tr>`).join('') :
+                `<tr><td colspan="3" class="border p-1.5 text-center text-gray-400">لا توجد مصروفات مسجلة</td></tr>`;
+
+            let installmentsRows = contract.installments.length > 0 ? 
+                contract.installments.map(i => `<tr><td class="border p-1.5">${i.installmentName || '---'}</td><td class="border p-1.5">${i.date || '---'}</td><td class="border p-1.5">${formatNumber(i.amount)} $</td><td class="border p-1.5">${i.receiver || '---'}</td></tr>`).join('') :
+                `<tr><td colspan="4" class="border p-1.5 text-center text-gray-400">لا توجد دفعات أو أقساط مسجلة</td></tr>`;
+
+            let reportProfitColor = netProfit >= 0 ? 'text-emerald-600' : 'text-red-600';
+            let reportProfitStr = contract.isSold ? (netProfit >= 0 ? '+' + formatNumber(netProfit) + ' $' : formatNumber(netProfit) + ' $') : '---';
+
+            document.getElementById('printModalTitle').innerText = 'تقرير السجل الشخصي الشامل للمركبة';
+            document.getElementById('printModalBody').innerHTML = `
+                <div class="text-center space-y-1 border-b pb-3">
+                    <h2 class="text-xl font-bold text-blue-800">تقرير السجل الإداري والمالي الشامل (خاص)</h2>
+                    <p class="text-xs text-gray-500">المستخدم المسؤول: ${currentUser} | تاريخ التقرير: ${new Date().toISOString().split('T')[0]}</p>
+                </div>
+                
+                <div class="space-y-3 text-xs">
+                    <div class="font-bold text-gray-700 bg-gray-100 p-2 rounded">1. بيانات المركبة الأساسية:</div>
+                    <div class="grid grid-cols-2 gap-2 bg-gray-50 p-2 rounded border">
+                        <div>نوع المركبة: <strong>${contract.carType}</strong></div>
+                        <div>رقم المركبة: <strong>${contract.carNumber}</strong></div>
+                        <div>سعر الشراء الأساسي: <strong>${formatNumber(contract.purchasePrice)} $</strong></div>
+                        <div>تاريخ الشراء: <strong>${contract.purchaseDate || '---'}</strong></div>
+                        <div>حالة البيع: <strong>${contract.isSold ? (contract.saleType === 'cash' ? 'مباعة نقداً' : 'مباعة بالأقساط') : 'معروضة للبيع'}</strong></div>
+                        <div>اسم المشتري: <strong>${contract.buyerName || '---'}</strong></div>
+                        <div>رقم هاتف المشتري: <strong>${contract.buyerPhone || '---'}</strong></div>
+                        <div>تاريخ البيع: <strong>${contract.sellingDate || '---'}</strong></div>
+                        <div>سعر البيع الإجمالي: <strong>${contract.isSold ? formatNumber(contract.sellingPrice) + ' $' : '---'}</strong></div>
+                        <div>الدفعة المقدمة (الواصل): <strong>${formatNumber(contract.downPayment)} $</strong></div>
+                    </div>
+
+                    <div class="font-bold text-gray-700 bg-gray-100 p-2 rounded mt-3">2. حركات المصروفات المسجلة:</div>
+                    <table class="w-full text-right border-collapse text-xs">
+                        <thead><tr class="bg-amber-100"><th class="border p-1.5">التاريخ</th><th class="border p-1.5">السبب</th><th class="border p-1.5">المبلغ</th></tr></thead>
+                        <tbody>${expensesRows}</tbody>
+                    </table>
+
+                    <div class="font-bold text-gray-700 bg-gray-100 p-2 rounded mt-3">3. حركات الأقساط والدفعات المسجلة:</div>
+                    <table class="w-full text-right border-collapse text-xs">
+                        <thead><tr class="bg-emerald-100"><th class="border p-1.5">اسم القسط</th><th class="border p-1.5">التاريخ</th><th class="border p-1.5">المبلغ</th><th class="border p-1.5">المتسلّم</th></tr></thead>
+                        <tbody>${installmentsRows}</tbody>
+                    </table>
+
+                    <div class="font-bold text-gray-700 bg-gray-100 p-2 rounded mt-3">4. الملخص المالي النهائي:</div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 bg-blue-50 p-2 rounded border text-center">
+                        <div class="p-1 border-l">إجمالي المصروفات: <strong class="block text-amber-600">${formatNumber(totalExpenses)} $</strong></div>
+                        <div class="p-1 border-l">إجمالي التكلفة الفعلية: <strong class="block text-blue-700">${formatNumber(capitalWithExp)} $</strong></div>
+                        <div class="p-1 border-l">المبلغ الكلي المحصول: <strong class="block text-emerald-600">${formatNumber(totalCollected)} $</strong></div>
+                        <div class="p-1">صافي الربح / الخسارة: <strong class="block ${reportProfitColor}">${reportProfitStr}</strong></div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('printModal').classList.println ? null : document.getElementById('printModal').classList.remove('hidden');
+            document.getElementById('printModal').classList.remove('hidden');
+        }
+
+        function closePrintModal() { document.getElementById('printModal').classList.add('hidden'); }
+
+        checkAuth();
+    </script>
+</body>
+</html>
