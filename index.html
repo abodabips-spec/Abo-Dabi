@@ -52,7 +52,7 @@
         <div class="bg-white shadow-md rounded-2xl p-6 text-center no-print flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
                 <h1 id="welcomeTitle" class="text-2xl md:text-3xl font-bold text-gray-800">نظام إدارة السيارات، المصروفات، والأقساط</h1>
-                <p class="text-gray-500 mt-1 text-sm">إدارة السجلات والعمليات (بالدولار $) - متزامن سحابياً ☁️</p>
+                <p class="text-gray-500 mt-1 text-sm">إدارة السجلات والعمليات (بالدولار $) </p>
             </div>
             <div id="topActionButtons" class="flex items-center gap-2 flex-wrap justify-center"></div>
         </div>
@@ -338,9 +338,9 @@
         window.cloudSave = async function(usersData) {
             try {
                 await set(ref(db, 'multiUsersSystem_v3'), usersData);
-                console.log("تم الحفظ سحابياً بنجاح");
+                console.log("تم الحفظ  بنجاح");
             } catch (error) {
-                console.error("خطأ في الحفظ السحابي:", error);
+                console.error("خطأ في الحفظ :", error);
             }
         };
 
@@ -692,7 +692,7 @@
                         if (confirm(`استيراد هذا الملف سيحدث سستم المستخدم (${currentUser}) بـ ${importedData.length} سجل. هل أنت متأكد؟`)) {
                             contracts = importedData;
                             await saveAndRender();
-                            alert('تم استيراد البيانات وتحديث السستم سحابياً ومحلياً بنجاح!');
+                            alert('تم استيراد البيانات وتحديث السستم  محلياً بنجاح!');
                         }
                     } else {
                         alert('ملف النسخ الاحتياطي غير صالح.');
