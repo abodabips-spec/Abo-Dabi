@@ -28,7 +28,7 @@
     <div id="loginScreen" class="max-w-md mx-auto mt-16 bg-white p-8 rounded-2xl shadow-xl space-y-6">
         <div class="text-center">
             <h1 class="text-2xl font-bold text-gray-800">تسجيل الدخول للنظام</h1>
-            <p class="text-gray-500 text-sm mt-1">نظام إدارة السيارات والأقساط (برمجة وهبي رياض)</p>
+            <p class="text-gray-500 text-sm mt-1">نظام إدارة السيارات والأقساط (محلي + سحابي)</p>
         </div>
         <form onsubmit="handleLogin(event)" class="space-y-4">
             <div>
@@ -52,7 +52,7 @@
         <div class="bg-white shadow-md rounded-2xl p-6 text-center no-print flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
                 <h1 id="welcomeTitle" class="text-2xl md:text-3xl font-bold text-gray-800">نظام إدارة السيارات، المصروفات، والأقساط</h1>
-                <p class="text-gray-500 mt-1 text-sm">إدارة السجلات والعمليات (بالدولار $)  </p>
+                <p class="text-gray-500 mt-1 text-sm">إدارة السجلات والعمليات (بالدولار $) - متزامن سحابياً ☁️</p>
             </div>
             <div id="topActionButtons" class="flex items-center gap-2 flex-wrap justify-center"></div>
         </div>
@@ -99,7 +99,7 @@
         </div>
 
         <!-- نموذج إضافة مركبة جديدة -->
-        <div class="bg-white shadow-md rounded-2xl p-6 no-print">
+        <div id="addCarSection" class="bg-white shadow-md rounded-2xl p-6 no-print">
             <h2 class="text-xl font-bold text-blue-600 mb-4 border-b pb-2">إضافة سيارة جديدة للمخزن</h2>
             <form id="carForm" class="grid grid-cols-1 md:grid-cols-3 gap-4" onsubmit="handleFormSubmit(event)">
                 <div>
@@ -327,18 +327,15 @@
             authDomain: "abo-dabi-47dbc.firebaseapp.com",
             projectId: "abo-dabi-47dbc",
             storageBucket: "abo-dabi-47dbc.firebasestorage.app",
-            messagingSenderId: "548872730657",
-            appId: "1:548872730657:web:fbcadb1d629b19f5f1cb60",
             measurementId: "G-8L41S79H9B"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // ربط الدوال مع النطاق العام ليتمكن باقي السستم من حفظ واسترجاع البيانات سحابياً
         window.cloudSave = async function(usersData) {
             try {
-                await set(ref(db, 'multiUsersSystem_v3'), usersData);
+                await set(ref(db, 'multiUsersSystem_v4'), usersData);
                 console.log("تم الحفظ سحابياً بنجاح");
             } catch (error) {
                 console.error("خطأ في الحفظ السحابي:", error);
@@ -348,7 +345,7 @@
         window.cloudLoad = async function() {
             try {
                 const dbRef = ref(db);
-                const snapshot = await get(child(dbRef, 'multiUsersSystem_v3'));
+                const snapshot = await get(child(dbRef, 'multiUsersSystem_v4'));
                 if (snapshot.exists()) {
                     return snapshot.val();
                 }
@@ -362,8 +359,11 @@
 
     <!-- الكود البرمجي للتطبيق -->
     <script>
-        let usersDB = JSON.parse(localStorage.getItem('multiUsersSystem_v3')) || {
-            "وهبي": { password: "1989", contracts: [] }
+        let usersDB = JSON.parse(localStorage.getItem('multiUsersSystem_v4')) || {
+            "وهبي": { password: "1989", contracts: [] },
+            "فاتك": { password: "20002000", contracts: [] },
+            "أزهر": { password: "30003000", contracts: [] },
+            "أنور": { password: "40004000", contracts: [] }
         };
 
         let currentUser = null;
@@ -387,13 +387,12 @@
             window.addEventListener(eventName, resetInactivityTimer);
         });
 
-        // مزامنة البيانات عند تشغيل الصفحة مع السحابة
         async function initCloudSync() {
             if (window.cloudLoad) {
                 const cloudData = await window.cloudLoad();
                 if (cloudData) {
                     usersDB = cloudData;
-                    localStorage.setItem('multiUsersSystem_v3', JSON.stringify(usersDB));
+                    localStorage.setItem('multiUsersSystem_v4', JSON.stringify(usersDB));
                     if (currentUser && usersDB[currentUser]) {
                         contracts = usersDB[currentUser].contracts || [];
                         updateDashboard();
@@ -455,12 +454,16 @@
                     </button>
                 `;
 
+                // خاصية الإضافة للمدير فقط (وهبي)
                 if (currentUser === "وهبي") {
+                    document.getElementById('addCarSection').classList.remove('hidden');
                     buttonsHTML += `
                         <button onclick="openRegisterModal()" class="bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-emerald-800 transition">
                             👤 إضافة شخص جديد
                         </button>
                     `;
+                } else {
+                    document.getElementById('addCarSection').classList.add('hidden');
                 }
 
                 buttonsHTML += `
@@ -517,7 +520,7 @@
 
         function openRegisterModal() {
             if (currentUser !== "وهبي") {
-                alert('عذراً، هذه الصلاحية مخصصة للمدير الأساسي فقط.');
+                alert('عذراً، هذه الصلاحية مخصصة للمدير (وهبي) فقط.');
                 return;
             }
             document.getElementById('newRegUsername').value = '';
@@ -544,11 +547,11 @@
             }
 
             usersDB[u] = { password: p, contracts: [] };
-            localStorage.setItem('multiUsersSystem_v3', JSON.stringify(usersDB));
+            localStorage.setItem('multiUsersSystem_v4', JSON.stringify(usersDB));
             if (window.cloudSave) await window.cloudSave(usersDB);
 
             closeRegisterModal();
-            alert(`تم إنشاء السستم والحساب للمستخدم "${u}" بنجاح!`);
+            alert(`تم إنشاء الحساب للمستخدم "${u}" بنجاح!`);
         }
 
         function openChangePasswordModal() {
@@ -567,7 +570,7 @@
 
             if (currentUser && usersDB[currentUser]) {
                 usersDB[currentUser].password = newPass;
-                localStorage.setItem('multiUsersSystem_v3', JSON.stringify(usersDB));
+                localStorage.setItem('multiUsersSystem_v4', JSON.stringify(usersDB));
                 if (window.cloudSave) await window.cloudSave(usersDB);
 
                 closeChangePasswordModal();
@@ -578,7 +581,7 @@
         async function saveCurrentUserData() {
             if (currentUser && usersDB[currentUser]) {
                 usersDB[currentUser].contracts = contracts;
-                localStorage.setItem('multiUsersSystem_v3', JSON.stringify(usersDB));
+                localStorage.setItem('multiUsersSystem_v4', JSON.stringify(usersDB));
                 if (window.cloudSave) {
                     await window.cloudSave(usersDB);
                 }
@@ -688,10 +691,10 @@
                 try {
                     const importedData = JSON.parse(e.target.result);
                     if (Array.isArray(importedData)) {
-                        if (confirm(`استيراد هذا الملف سيحدث سستم المستخدم (${currentUser}) بـ ${importedData.length} سجل. هل أنت متأكد؟`)) {
+                        if (confirm(`استيراد هذا الملف سيحدث بيانات المستخدم (${currentUser}) بـ ${importedData.length} سجل. هل أنت متأكد؟`)) {
                             contracts = importedData;
                             await saveAndRender();
-                            alert('تم استيراد البيانات وتحديث السستم سحابياً ومحلياً بنجاح!');
+                            alert('تم استيراد البيانات وتحديثها سحابياً ومحلياً بنجاح!');
                         }
                     } else {
                         alert('ملف النسخ الاحتياطي غير صالح.');
@@ -706,6 +709,12 @@
 
         async function handleFormSubmit(event) {
             event.preventDefault();
+            // صلاحية الإضافة مقتصرة على المدير (وهبي) فقط
+            if (currentUser !== "وهبي") {
+                alert('عذراً، خاصية إضافة سيارة جديدة مخصصة للمدير (وهبي) فقط.');
+                return;
+            }
+
             const carTypeVal = document.getElementById('carType').value.trim();
             const carNumberVal = document.getElementById('carNumber').value.trim();
             const purchasePriceVal = parseFloat(document.getElementById('purchasePrice').value) || 0;
@@ -851,6 +860,9 @@
                 let profitColorClass = netProfit >= 0 ? 'text-emerald-600' : 'text-red-600';
                 let profitDisplayStr = isSold ? (netProfit >= 0 ? '+' + formatNumber(netProfit) + ' $' : formatNumber(netProfit) + ' $') : '---';
 
+                // زر الحذف يظهر لـ "وهبي" فقط
+                let deleteButtonHTML = currentUser === "وهبي" ? `<button onclick="requestDeleteContract(${contract.id})" class="bg-red-500 text-white px-3 py-1 rounded text-xs">حذف</button>` : '';
+
                 let detailsHTML = `
                     <div class="p-4 bg-gray-50 border-t space-y-4 ${contract.showDetails ? '' : 'hidden'}">
                         <div class="flex justify-end gap-2 flex-wrap no-print items-center border-b pb-3">
@@ -859,7 +871,7 @@
                             <button onclick="printPersonalReport(${contract.id})" class="bg-blue-700 text-white px-3 py-1 rounded text-xs font-bold">🖨️ طبع لي شخصي</button>
                             <button onclick="toggleEditFullForm(${contract.id})" class="bg-purple-600 text-white px-3 py-1 rounded text-xs font-bold">✏️ تعديل</button>
                             <button onclick="toggleExpenses(${contract.id})" class="bg-amber-600 text-white px-3 py-1 rounded text-xs">مصروفات (${formatNumber(totalExpenses)} $)</button>
-                            <button onclick="requestDeleteContract(${contract.id})" class="bg-red-500 text-white px-3 py-1 rounded text-xs">حذف</button>
+                            ${deleteButtonHTML}
                         </div>
 
                         <!-- نموذج تعديل المركبة -->
@@ -1004,8 +1016,13 @@
 
         let pendingDeleteAction = null;
         function requestDeletePasswordModal(actionCallback, messageText) {
+            // التحقق من أن المستخدم الحالي هو المدير (وهبي) لمنع أي شخص آخر من محاولة الحذف حتى لو عرف الرمز
+            if (currentUser !== "وهبي") {
+                alert('عذراً، خاصية الحذف مخصصة للمدير (وهبي) فقط.');
+                return;
+            }
             pendingDeleteAction = actionCallback;
-            document.getElementById('deleteReasonText').innerText = messageText || 'يرجى إدخال الرمز السري الخاص بك لإتمام عملية الحذف:';
+            document.getElementById('deleteReasonText').innerText = messageText || 'يرجى إدخال الرمز السري للمدير لإتمام عملية الحذف:';
             document.getElementById('confirmDeletePassInput').value = '';
             document.getElementById('deletePasswordModal').classList.remove('hidden');
         }
@@ -1019,13 +1036,13 @@
             event.preventDefault();
             const passInput = document.getElementById('confirmDeletePassInput').value.trim();
 
-            if (currentUser && usersDB[currentUser] && usersDB[currentUser].password === passInput) {
+            if (currentUser === "وهبي" && usersDB["وهبي"].password === passInput) {
                 if (typeof pendingDeleteAction === 'function') {
                     pendingDeleteAction();
                 }
                 closeDeletePasswordModal();
             } else {
-                alert('الرمز السري غير صحيح! فشلت عملية الحذف.');
+                alert('الرمز السري غير صحيح!');
             }
         }
 
@@ -1033,7 +1050,7 @@
             requestDeletePasswordModal(async () => {
                 contracts = contracts.filter(c => c.id !== id);
                 await saveAndRender();
-            }, 'حذف سجل المركبة بالكامل يتطلب إدخال الرمز السري:');
+            }, 'حذف سجل المركبة بالكامل يتطلب إدخال الرمز السري للمدير وهبي:');
         }
 
         function requestRemoveExpense(contractId, index) {
@@ -1043,7 +1060,7 @@
                     contract.expenses.splice(index, 1);
                     await saveAndRender();
                 }
-            }, 'حذف سطر المصروف يتطلب إدخال الرمز السري:');
+            }, 'حذف سطر المصروف يتطلب إدخال الرمز السري للمدير وهبي:');
         }
 
         function requestRemoveInstallmentRow(contractId, index) {
@@ -1053,7 +1070,7 @@
                     contract.installments.splice(index, 1);
                     await saveAndRender();
                 }
-            }, 'حذف سطر القسط يتطلب إدخال الرمز السري:');
+            }, 'حذف سطر القسط يتطلب إدخال الرمز السري للمدير وهبي:');
         }
 
         function openSaleModal(contractId) {
@@ -1452,7 +1469,6 @@
                     </div>
                 </div>
             `;
-            document.getElementById('printModal').classList.println ? null : document.getElementById('printModal').classList.remove('hidden');
             document.getElementById('printModal').classList.remove('hidden');
         }
 
