@@ -28,7 +28,7 @@
     <div id="loginScreen" class="max-w-md mx-auto mt-16 bg-white p-8 rounded-2xl shadow-xl space-y-6">
         <div class="text-center">
             <h1 class="text-2xl font-bold text-gray-800">تسجيل الدخول للنظام</h1>
-            <p class="text-gray-500 text-sm mt-1">نظام إدارة السيارات والأقساط (برمجة وهبي رياض)</p>
+            <p class="text-gray-500 text-sm mt-1">نظام إدارة السيارات والأقساط (محلي + سحابي)</p>
         </div>
         <form onsubmit="handleLogin(event)" class="space-y-4">
             <div>
@@ -52,7 +52,7 @@
         <div class="bg-white shadow-md rounded-2xl p-6 text-center no-print flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
                 <h1 id="welcomeTitle" class="text-2xl md:text-3xl font-bold text-gray-800">نظام إدارة السيارات، المصروفات، والأقساط</h1>
-                <p class="text-gray-500 mt-1 text-sm">إدارة السجلات والعمليات (بالدولار $)  </p>
+                <p class="text-gray-500 mt-1 text-sm">إدارة السجلات والعمليات (بالدولار $) - متزامن سحابياً ☁️</p>
             </div>
             <div id="topActionButtons" class="flex items-center gap-2 flex-wrap justify-center"></div>
         </div>
@@ -193,7 +193,7 @@
             <form onsubmit="handleRegisterNewUser(event)" class="space-y-4 text-xs">
                 <div>
                     <label class="block text-gray-700 font-semibold mb-1">اسم المستخدم الجديد:*</label>
-                    <input type="text" id="newRegUsername" required placeholder="مثال: أحمد" class="w-full px-3 py-2 border rounded-lg text-sm">
+                    <input type="text" id="newRegUsername" required placeholder="مثال: فاتك" class="w-full px-3 py-2 border rounded-lg text-sm">
                 </div>
                 <div>
                     <label class="block text-gray-700 font-semibold mb-1">الرمز السري الخاص به:*</label>
@@ -335,7 +335,6 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // ربط الدوال مع النطاق العام ليتمكن باقي السستم من حفظ واسترجاع البيانات سحابياً
         window.cloudSave = async function(usersData) {
             try {
                 await set(ref(db, 'multiUsersSystem_v3'), usersData);
@@ -363,7 +362,10 @@
     <!-- الكود البرمجي للتطبيق -->
     <script>
         let usersDB = JSON.parse(localStorage.getItem('multiUsersSystem_v3')) || {
-            "وهبي": { password: "1989", contracts: [] }
+            "وهبي": { password: "open1989", contracts: [] },
+            "فاتك": { password: "10001000", contracts: [] },
+            "ازهر": { password: "100100", contracts: [] },
+            "انور": { password: "1010", contracts: [] }
         };
 
         let currentUser = null;
@@ -387,7 +389,6 @@
             window.addEventListener(eventName, resetInactivityTimer);
         });
 
-        // مزامنة البيانات عند تشغيل الصفحة مع السحابة
         async function initCloudSync() {
             if (window.cloudLoad) {
                 const cloudData = await window.cloudLoad();
@@ -505,7 +506,7 @@
                 document.getElementById('loginPassword').value = '';
                 checkAuth();
             } else {
-                alert('اسم المستخدم أو الرمز السري غير صحيح!');
+                alert('اسم المستخدم أو الرمز السري غير صحيح أو غير مسموح بالدخول!');
             }
         }
 
@@ -517,7 +518,7 @@
 
         function openRegisterModal() {
             if (currentUser !== "وهبي") {
-                alert('عذراً، هذه الصلاحية مخصصة للمدير الأساسي فقط.');
+                alert('عذراً، هذه الصلاحية مخصصة لوهبي حصراً.');
                 return;
             }
             document.getElementById('newRegUsername').value = '';
@@ -1452,7 +1453,6 @@
                     </div>
                 </div>
             `;
-            document.getElementById('printModal').classList.println ? null : document.getElementById('printModal').classList.remove('hidden');
             document.getElementById('printModal').classList.remove('hidden');
         }
 
